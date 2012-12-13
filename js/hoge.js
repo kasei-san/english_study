@@ -69,45 +69,112 @@ Questions.prototype = {
 }
 // view と Questions をつないでるので、controllerとした
 function QuestionsController(datas, dom){
-  this.dom = dom;
   this.qs  = new Questions(datas);
+  this.dom = new DomController(dom, this);
 }
+
+function DomController(dom, questionsController){
+  this.dom = dom;
+  this.controller = questionsController;
+  this.question = new Dom($('<div id="q"></div>'), this.dom);
+  this.anser = new Dom(
+    $('<div id="anser"></div>')
+      .append($('<div id="result"><div>'))
+      .append($('<div id="anser_text"><div>'))
+      .append($('<div id="text"><div>'))
+      .append($('<input type="button" id="next_button" value="next" >').click(
+        (function(controller){
+          return (function(){ controller.next() });
+        })(this.controller)
+      )),
+    this.dom);
+  this.anser.set = (function(controller){
+    return function(){
+      this.dom.find("div#result").text((controller.is_answer()) ? "正解" : "不正解")
+      this.dom.find("div#anser_text").text(controller.q.a);
+      this.dom.find("div#text").text(controller.q.text);
+    }
+  })(this.controller);
+  this.anser_form = new Dom(
+    $('<div id="anser_form"></div>')
+      .append($('<input type="button" id="anser_button" value="anser">').click(
+           (function(controller){
+             return (function(){ controller.anser() });
+           })(this.controller)
+         )
+      ),
+    this.dom);
+  this.anser_form.set = (function(controller){
+    return function(){
+      this.dom.find("input#anser_text").remove();
+      this.dom.find("input.anser_texts").remove();
+      var a = controller.q.a
+      if(typeof a == "string"){
+        this.dom.prepend('<div><input type="text", id="anser_text"></div>');
+      }else{
+        for(var i=0,l=a.length; i<l; i++){
+          this.dom.prepend('<div><input type="text", class="anser_texts"></div>');
+        }
+      }
+    }
+  }(this.controller));
+
+  this.anser_form.texts = function(){
+    if(this.dom.find("input#anser_text").length >= 1){
+      return this.dom.find("input#anser_text").val();
+    }else{
+      var result = [];
+      this.dom.find("input.anser_texts").each(function(){
+        result.push($(this).val());
+      });
+      return result;
+    }
+  }
+}
+
+// DOM制御用class
+Dom = function(dom, base_dom){
+  this.dom = dom;
+  this.base_dom = base_dom;
+}
+
+// DOMの生成、検索、削除を行うClass
+Dom.prototype = {
+  find : function(){ return this.base_dom.find(this.dom) },
+  show : function(){
+    if(this.find().length == 0){ this.create() }
+    this.set();
+    this.find().show();
+    return this.find();
+  },
+  hide : function(){
+    if(this.find().length > 0){ this.find().hide() }
+    return this.find();
+  },
+  create : function(){
+    if(this.find().length == 0){ this.base_dom.append(this.dom) }
+    return this.find();
+  },
+  // 何か値をセットするメソッド。必要に応じてオーバーロードする
+  set : function(){ }
+}
+
 QuestionsController.prototype = {
   start : function(){
     this.qs.reset();
-
-    this.dom.append('<div id="q"></div>');
-    this.qdom = this.dom.find("div#q");
-
-    this.dom.append(
-      $('<div id="a"></div>')
-        .append('<input type="textarea" id="anser_text"><br>')
-        .append('<input type="button"   id="anser_button" value="anser" >')
-    );
-    this.aform_dom = this.dom.find("div#a");
-    this.aform_dom.find("input#anser_button").click(
-      (function(controller){
-        return (function(){ controller.anser() });
-      })(this)
-    );
     this.next();
-  },
-  is_answer: function(){
-    var a = this.dom.find("div#a input#anser_text").val();
-    return this.q.is_answer(a);
-  },
-  anser: function(){
-    this.dom.find("div#a").remove();
-    this.dom.append(
-      $('<div id="a"></div>')
-        .append($('<div id="result"><div>').text((this.is_answer) ? "正解" : "不正解"))
-        .append($('<div id="anser_text"><div>').text(this.q.a))
-        .append($('<div id="anser_text"><div>').text(this.q.text))
-        .append('<input type="button"   id="next_button" value="next" >')
-    );
   },
   next : function(){
     this.q = this.qs.next();
-    this.qdom.html(this.q.q);
+    this.dom.anser.hide();
+    this.dom.question.show().html(this.q.q);
+    this.dom.anser_form.show();
   },
+  anser: function(){
+    this.dom.anser.show();
+    this.dom.anser_form.hide();
+  },
+  is_answer: function(){
+    return this.q.is_answer(this.dom.anser_form.texts());
+  }
 }
