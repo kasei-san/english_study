@@ -173,9 +173,28 @@ test("QuestionsController", function(){
     $(a.find("input.anser_texts")[0]).val('答え3-2');
     $(a.find("input.anser_texts")[1]).val('答え3-1');
 
-    // anser_button.click();
-    // stop();
-    // setTimeout(push_anser3, 100);
+    anser_button.click();
+    stop();
+    setTimeout(push_anser3, 100);
   }
+
+  function push_anser3(){
+    start();
+    var dom = $("#questions_controller");
+
+    equal(dom.find("div#anser_form:visible").length, 0, 'div#anser_form はみえないこと');
+
+    var a = dom.find("div#anser");
+    equal(a.length, 1, 'div#anser があること');
+    equal(a.find("div#result").text(),     '正解',                '正解となること');
+    equal(a.find("div#anser_text").html(), '答え3-1<br>答え3-2',  '回答が表示されること');
+    equal(a.find("div#text").text(),       '解説文',              '解説文は無いこと');
+
+    equal(a.find("input#next_button").length, 1, 'input#next_button があること');
+    // next_button.click();
+    // stop();
+    // setTimeout(push_next2, 100);
+  }
+
 });
 

@@ -91,7 +91,8 @@ function DomController(dom, questionsController){
   this.anser.set = (function(controller){
     return function(){
       this.dom.find("div#result").text((controller.is_answer()) ? "正解" : "不正解")
-      this.dom.find("div#anser_text").text(controller.q.a);
+      var a = controller.q.a
+      this.dom.find("div#anser_text").html((typeof a == "string") ? a : a.join("<br>"));
       this.dom.find("div#text").text(controller.q.text);
     }
   })(this.controller);
