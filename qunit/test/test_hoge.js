@@ -96,10 +96,10 @@ function next_button(){
 // * q_text           : 問題文
 // * multi_anser_size : 複数回答フォーム数
 function check_anser_form(q_text, multi_anser_size){
-  var q = dom().find("div#q");
+  var q = dom().find("div#q:visible");
   equal(dom().find("div#anser:visible").length, 0, 'div#anser は見えないこと');
 
-  equal(q.length,  1,       'div#q があること');
+  equal(q.length,  1,       'div#q があって見えていること');
   equal(q.html(),  q_text,  '問題が表示されること');
 
   equal(dom().find("div#anser_form").length, 1, 'div#anser_form があること');
@@ -119,9 +119,9 @@ function check_anser_form(q_text, multi_anser_size){
 // * text       : 解説文
 function check_anser(is_right, anser_text, text){
   equal(dom().find("div#anser_form:visible").length, 0, 'div#anser_form はみえないこと');
-  var a = dom().find("div#anser");
-  equal(a.length, 1, 'div#anser があること');
-  equal(a.find("div#result").text(),     is_right ? '正解' : '不正解',  '回答結果が出ること');
+  var a = dom().find("div#anser:visible");
+  equal(a.length, 1, 'div#anser があって、見えていること');
+  equal(a.find("div#anser_result").text(),     is_right ? '正解' : '不正解',  '回答結果が出ること');
   equal(a.find("div#anser_text").html(), anser_text,                    '回答が表示されること');
   equal(a.find("div#text").text(),       text ? text : '',              '解説文は無いこと');
 
@@ -129,13 +129,12 @@ function check_anser(is_right, anser_text, text){
 }
 
 test("QuestionsController", function(){
-  var dom = $("#questions_controller");
   var qsc = new QuestionsController([
     { q: '問題1', a: '答え1' },
     { q: '問題2', a: '答え2', text: '解説文' },
     { q: '問題3', a: ['答え3-1', '答え3-2'] },
     { q: '問題4', a: ['答え4-1', '答え4-2'], text: '解説文2' },
-  ], dom);
+  ], $("#questions_controller"));
   qsc.start();
 
   check_anser_form('問題1');
@@ -200,13 +199,20 @@ test("QuestionsController", function(){
   function push_anser_4(){
     start();
     check_anser(false, '答え4-1<br>答え4-2', '解説文2');
-    // next_button().click();
-    // stop();
-    // setTimeout(push_next_4, 100);
+    next_button().click();
+    stop();
+    setTimeout(push_next_4, 100);
   }
 
   function push_next_4(){
+    start();
+    equal(dom().find("div#anser_form:visible").length, 0, 'div#anser_form はみえないこと');
+    equal(dom().find("div#anser:visible").length,      0, 'div#anser は見えないこと');
+    equal(dom().find("div#result:visible").length,     1, 'div#result は見えること');
+    var result = dom().find("div#result");
+    equal(result.find("div#result_text").text(),      '結果',  '回答結果(テキスト)が出ること');
+    equal(result.find("div#point").text(),            '2/4',   '回答結果(正解数)');
+    equal(result.find("div#rate").text(),             '50%',   '回答結果(正解率)が出ること');
   }
-
 });
 

@@ -79,7 +79,7 @@ function DomController(dom, questionsController){
   this.question = new Dom($('<div id="q"></div>'), this.dom);
   this.anser = new Dom(
     $('<div id="anser"></div>')
-      .append($('<div id="result"><div>'))
+      .append($('<div id="anser_result"><div>'))
       .append($('<div id="anser_text"><div>'))
       .append($('<div id="text"><div>'))
       .append($('<input type="button" id="next_button" value="next" >').click(
@@ -90,7 +90,7 @@ function DomController(dom, questionsController){
     this.dom);
   this.anser.set = (function(controller){
     return function(){
-      this.dom.find("div#result").text((controller.is_answer()) ? "正解" : "不正解")
+      this.dom.find("div#anser_result").text((controller.is_answer()) ? "正解" : "不正解")
       var a = controller.q.a
       this.dom.find("div#anser_text").html((typeof a == "string") ? a : a.join("<br>"));
       if (controller.q.text == null || controller.q.text == ''){
@@ -123,7 +123,6 @@ function DomController(dom, questionsController){
       }
     }
   }(this.controller));
-
   this.anser_form.texts = function(){
     if(this.dom.find("input#anser_text").length >= 1){
       return this.dom.find("input#anser_text").val();
@@ -135,6 +134,21 @@ function DomController(dom, questionsController){
       return result;
     }
   }
+  this.result = new Dom(
+    $('<div id="result"></div>')
+      .append($('<div id="result_text">結果<div>'))
+      .append($('<div id="point"><div>'))
+      .append($('<div id="rate"><div>'))
+    , this.dom
+  );
+  this.result.set = (function(controller){
+    return function(){
+      var size = controller.size() - 0;
+      var anser_cnt  = controller.anser_cnt() - 0;
+      this.dom.find("div#point").text(anser_cnt + "/" + size);
+      this.dom.find("div#rate").text(Math.round((anser_cnt/size)*100) + "%");
+    }
+  })(this.controller);
 }
 
 // DOM制御用class
@@ -148,6 +162,7 @@ Dom.prototype = {
   find : function(){ return this.base_dom.find(this.dom) },
   show : function(){
     if(this.find().length == 0){ this.create() }
+    console.log(this);
     this.set();
     this.find().show();
     return this.find();
@@ -165,6 +180,9 @@ Dom.prototype = {
 }
 
 QuestionsController.prototype = {
+  cnt       : function(){ return this.qs.cnt() },
+  anser_cnt : function(){ return this.qs.anser_cnt() },
+  size      : function(){ return this.qs.size() },
   start : function(){
     this.qs.reset();
     this.next();
@@ -172,8 +190,15 @@ QuestionsController.prototype = {
   next : function(){
     this.q = this.qs.next();
     this.dom.anser.hide();
-    this.dom.question.show().html(this.q.q);
-    this.dom.anser_form.show();
+    console.log(this.q);
+    if(this.q){
+      this.dom.question.show().html(this.q.q);
+      this.dom.anser_form.show();
+    }else{
+      this.dom.question.hide();
+      this.dom.anser_form.hide();
+      this.dom.result.show();
+    }
   },
   anser: function(){
     this.dom.anser.show();
