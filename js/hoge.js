@@ -93,7 +93,11 @@ function DomController(dom, questionsController){
       this.dom.find("div#result").text((controller.is_answer()) ? "正解" : "不正解")
       var a = controller.q.a
       this.dom.find("div#anser_text").html((typeof a == "string") ? a : a.join("<br>"));
-      this.dom.find("div#text").text(controller.q.text);
+      if (controller.q.text == null || controller.q.text == ''){
+        this.dom.find("div#text").text('');
+      }else{
+        this.dom.find("div#text").text(controller.q.text);
+      }
     }
   })(this.controller);
   this.anser_form = new Dom(
