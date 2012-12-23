@@ -1,12 +1,18 @@
-String.prototype.strip = function(){ return this.replace(/\s|\./g, ""); }
-String.prototype.is_equal = function(str){ return this.strip() == str.strip(); }
+/*
+TODO
+ - json から問題を取得
+ - 前回の結果を記録する
+ - 実際に使用するHTMLを書く
+*/
 
+// strip : 前後の空白文字と、ピリオドを排除
+String.prototype.strip = function(){ return this.replace(/\s|\./g, ""); }
 Array.prototype.strip = function(){
-  var a = [];
-  for(var i=0,l=this.length; i<l; i++){ a.push(this[i].strip()); }
-  return a.sort();
+  return this.inject([], function(result, data){ result.push(data.strip()); return result; }).sort();
 }
 
+// is_equal : 現在の値と、引数をstripした結果が一致しているか確認
+String.prototype.is_equal = function(str){ return this.strip() == str.strip(); }
 Array.prototype.is_equal = function(array){
   var a = this.strip();
   var b = array.strip();
@@ -17,38 +23,34 @@ Array.prototype.is_equal = function(array){
 
 // 1段階のディープコビー
 Array.prototype.dup = function(){
-  var result = [];
-  for(var i=0,l=this.length; i<l; i++){ result.push(this[i]) }
-  return result;
+  return this.inject([], function(result, data){ result.push(data); return result; });
 }
 
 // 大体でいい
 Array.prototype.shuffle = function(){ return this.sort(function (a, b) { return Math.ceil(Math.random() * 3) - 2; }); }
 
-Array.prototype.each = function(func){
-  for(var i=0,l=this.length; i<l; i++){
-    func.call(this, this[i]);
-  }
-}
+// Array拡張
+Array.prototype.each = function(func){ for(var i=0,l=this.length; i<l; i++){ func.call(this, this[i]); } }
 Array.prototype.inject = function(result, func){
-  for(var i=0,l=this.length; i<l; i++){
-    result = func.call(this, result, this[i]);
-  }
+  for(var i=0,l=this.length; i<l; i++){ result = func.call(this, result, this[i]); }
   return result;
 }
 
+// 問題管理メソッド
 function Questions(datas){
   this.datas = [];
-  for(var i=0, l=datas.length; i<l; i++){
-    var data = datas[i];
-    // 特異メソッド的な
-    data.is_answer = function(a){
-      var result = this.a.is_equal(a);
-      this.anser_status = result;
-      return result;
-    }
-    this.datas.push(datas[i]);
-  }
+  datas.each(
+    (function(questions){
+      return function(data){
+        data.is_answer = function(a){
+          var result = this.a.is_equal(a);
+          this.anser_status = result;
+          return result;
+        }
+        questions.datas.push(data);
+      }
+    })(this)
+  );
   this.reset();
 }
 Questions.prototype = {
@@ -73,10 +75,44 @@ function QuestionsController(datas, dom){
   this.dom = new DomController(dom, this);
 }
 
+QuestionsController.prototype = {
+  // アクセサ
+  cnt       : function(){ return this.qs.cnt() },
+  anser_cnt : function(){ return this.qs.anser_cnt() },
+  size      : function(){ return this.qs.size() },
+  // アクション
+  start : function(){
+    this.qs.reset();
+    this.next();
+  },
+  next : function(){
+    this.q = this.qs.next();
+    this.dom.anser.hide();
+    if(this.q){
+      this.dom.question.show();
+      this.dom.anser_form.show();
+    }else{
+      this.dom.question.hide();
+      this.dom.anser_form.hide();
+      this.dom.result.show();
+    }
+  },
+  anser: function(){
+    this.dom.anser.show();
+    this.dom.anser_form.hide();
+  },
+  is_answer: function(){ return this.q.is_answer(this.dom.anser_form.texts()); }
+}
+
 function DomController(dom, questionsController){
   this.dom = dom;
   this.controller = questionsController;
   this.question = new Dom($('<div id="q"></div>'), this.dom);
+  this.question.set = (function(controller){
+    return function(){
+      this.dom.html(controller.q.q);
+    }
+  })(this.controller);
   this.anser = new Dom(
     $('<div id="anser"></div>')
       .append($('<div id="anser_result"><div>'))
@@ -162,7 +198,6 @@ Dom.prototype = {
   find : function(){ return this.base_dom.find(this.dom) },
   show : function(){
     if(this.find().length == 0){ this.create() }
-    console.log(this);
     this.set();
     this.find().show();
     return this.find();
@@ -179,32 +214,3 @@ Dom.prototype = {
   set : function(){ }
 }
 
-QuestionsController.prototype = {
-  cnt       : function(){ return this.qs.cnt() },
-  anser_cnt : function(){ return this.qs.anser_cnt() },
-  size      : function(){ return this.qs.size() },
-  start : function(){
-    this.qs.reset();
-    this.next();
-  },
-  next : function(){
-    this.q = this.qs.next();
-    this.dom.anser.hide();
-    console.log(this.q);
-    if(this.q){
-      this.dom.question.show().html(this.q.q);
-      this.dom.anser_form.show();
-    }else{
-      this.dom.question.hide();
-      this.dom.anser_form.hide();
-      this.dom.result.show();
-    }
-  },
-  anser: function(){
-    this.dom.anser.show();
-    this.dom.anser_form.hide();
-  },
-  is_answer: function(){
-    return this.q.is_answer(this.dom.anser_form.texts());
-  }
-}
